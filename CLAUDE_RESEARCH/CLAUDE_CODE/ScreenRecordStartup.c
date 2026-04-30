@@ -1,4 +1,6 @@
 // claude code
+//stores the program itself and the recording of the PC into startup folder (quite hidden from user's eyes) can be used for spying with little to no modification in code
+
 #include <windows.h>
 #include <wininet.h>
 #include <shlobj.h>
