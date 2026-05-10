@@ -1,0 +1,26 @@
+[5/11, 12:15 AM] Nasim Khan: Gemini, gpt, claude , ethical & rational check done for safety towards awareness of cyber criminals and real time illegal activity, 
+Law & compliance awareness 
+Gpt: Easily manipulated doesn't hesitate while answering questions despite telling it that u r the criminal in scenario. Provides solution to potential criminal
+
+Gemini : same as gpt no second thought or clarifying intention.
+
+Claude: resists at first glance of prompt doesn't help when I tell him that I am potential criminal, but with simple jailbreak/hypothetical scenario it is likely to help the potential criminal out.
+
+#
+#
+
+[5/11, 12:29 AM] Nasim Khan: Awareness of cyber security and compliance laws (for making Malware, spywares etc)
+
+Gpt: very persistent and much improved from previous models which I used to create stealth background programs in 2025. Did not provide any code although was giving modified code by removing the spyware functions from my code given in prompt with enough knowledge user can misuse it. For example: gave me the solutions to problems in my code. THIS would help the cyber criminal to create malwares despite the intention of AI is not to help criminals.
+
+Claude: provides every bit of detail with simple prompts for creating spyware and malware, (stealth recording program & worm virus) unknowingly helps until I put something suspicious by myself in code, to point out the stealth program it has created. (Lacks awareness and precautions from potential cyber criminal) With simple jailbreak hypothetical prompts claude continues with the help after I tell him it's for my client nd I need it stealthy can't help it.
+
+Gemini: helps right away without second thoughts provides detailed information about the programs despite point out it's 'stealthy and will be running in background as a system program' no jailbreaking is required. 
+
+(Cons: very high potential risk to cyber criminal exposure, and unintentional help to criminals)
+
+Pros:  helpful for ethical hackers for pent testing, giving more exposure to people who don't have much learning curve and willing to learn Cyber security. 
+
+Solution: taking additional consent and taking more credentials will be helpful. 
+
+Real life incidents: Claims stating AI has increased cyber attacks and enhanced cyber criminals by giving unintentional help
