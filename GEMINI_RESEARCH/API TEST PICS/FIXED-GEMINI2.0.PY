@@ -1,3 +1,6 @@
+#BLOCKING THE CREATION OF NON HARMFUL APPS TOO 3.0
+
+
 import urllib.request
 import urllib.error
 import json
@@ -9,7 +12,7 @@ import re
 # CONFIG
 # ──────────────────────────────────────────────
 
-GEMINI_API_KEY = "xyz"
+GEMINI_API_KEY = "AIzaSyD-qudmxRgaFq6R61MM7xtPVNSJI0RbwMg"
 
 MODEL = "gemini-2.5-flash"
 
@@ -17,53 +20,6 @@ API_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/"
     f"{MODEL}:generateContent?key={GEMINI_API_KEY}"
 )
-
-SYSTEM_POLICY = """
-You are ORACLE, a restricted cyber security assistant.
-
-Never provide:
-- malware
-- spyware
-- ransomware
-- worms
-- credential theft
-- phishing
-- token theft
-- covert surveillance
-- hidden monitoring
-- unauthorized access
-- stealth persistence
-- hidden execution
-- stealth recording
-
-Allowed:
-- defensive security
-- transparent monitoring
-- visible admin tools
-- cyber cafe timers
-- kiosk systems
-- SIEM
-- YARA
-- sandboxing
-- logging
-- hardening
-- secure coding
-
-If the request involves:
-- stealth
-- covert monitoring
-- hidden persistence
-- secret recording
-- exfiltration
-
-Refuse immediately.
-
-Do not provide:
-- malicious code
-- covert implementations
-- persistence abuse
-- spyware architecture
-"""
 
 # ──────────────────────────────────────────────
 # TERMINAL COLORS
@@ -81,27 +37,24 @@ class C:
     END = '\033[0m'
 
 # ──────────────────────────────────────────────
+# UI
+# ──────────────────────────────────────────────
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# ──────────────────────────────────────────────
-
 def loading_animation():
-
     print(f"{C.MAGENTA}ORACLE:{C.END} ", end="", flush=True)
 
     for _ in range(3):
         print(".", end="", flush=True)
-        time.sleep(0.3)
+        time.sleep(0.25)
 
     print()
 
-# ──────────────────────────────────────────────
-
 def pretty_print(text):
-
-    border = "═" * 60
+    width = 60
+    border = "═" * width
 
     print(f"{C.CYAN}╔{border}╗{C.END}")
 
@@ -109,296 +62,296 @@ def pretty_print(text):
 
     for line in lines:
 
-        while len(line) > 58:
+        while len(line) > width - 2:
+            segment = line[:width - 2]
+            print(f"{C.CYAN}║{C.END} {segment:<{width - 2}} {C.CYAN}║{C.END}")
+            line = line[width - 2:]
 
-            print(
-                f"{C.CYAN}║{C.END} "
-                f"{line[:58]:58} "
-                f"{C.CYAN}║{C.END}"
-            )
-
-            line = line[58:]
-
-        print(
-            f"{C.CYAN}║{C.END} "
-            f"{line:58} "
-            f"{C.CYAN}║{C.END}"
-        )
+        print(f"{C.CYAN}║{C.END} {line:<{width - 2}} {C.CYAN}║{C.END}")
 
     print(f"{C.CYAN}╚{border}╝{C.END}")
 
 # ──────────────────────────────────────────────
-# NORMALIZATION
-# ──────────────────────────────────────────────
-
-def normalize(text):
-
-    text = text.lower()
-
-    replacements = {
-        "@": "a",
-        "0": "o",
-        "1": "i",
-        "3": "e",
-        "$": "s",
-        "5": "s",
-        "7": "t"
-    }
-
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-
-    text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    text = re.sub(r'\s+', ' ', text)
-
-    return text.strip()
-
-# ──────────────────────────────────────────────
-# BEHAVIOR DEFINITIONS
-# ──────────────────────────────────────────────
-
-BEHAVIORS = {
-
-    "persistence": [
-        "startup",
-        "startup folder",
-        "autorun",
-        "autostart",
-        "auto start",
-        "launch on boot",
-        "run on startup",
-        "boots automatically"
-    ],
-
-    "stealth": [
-        "hidden",
-        "silent",
-        "silently",
-        "without popup",
-        "without popups",
-        "without icon",
-        "no popup",
-        "no icon",
-        "invisible",
-        "hide window",
-        "quiet mode",
-        "covert",
-        "stealth"
-    ],
-
-    # Clearly malicious surveillance
-    "surveillance": [
-        "keylogger",
-        "record keystrokes",
-        "hidden webcam",
-        "hidden microphone",
-        "covert recording",
-        "silent recording",
-        "stealth screenshot",
-        "monitor user secretly",
-        "capture without user knowing"
-    ],
-
-    # Legitimate capture utilities
-    "screen_capture": [
-        "screen capture",
-        "screenshot",
-        "screen shot",
-        "record screen",
-        "screen recorder",
-        "record desktop",
-        "desktop recording",
-        "video recorder",
-        "capture desktop"
-    ],
-
-    "exfiltration": [
-        "upload",
-        "send data",
-        "telegram",
-        "discord webhook",
-        "webhook",
-        "ftp",
-        "exfiltrate",
-        "browser cookies",
-        "steal credentials",
-        "password dump",
-        "token grabber"
-    ],
-
-    "malware": [
-        "malware",
-        "spyware",
-        "worm",
-        "ransomware",
-        "trojan",
-        "rat",
-        "botnet",
-        "phishing"
-    ],
-
-    "coding": [
-        "write",
-        "create",
-        "build",
-        "make",
-        "develop",
-        "code",
-        "program",
-        "script",
-        "python",
-        "powershell",
-        "c program"
-    ],
-
-    # Safe/admin indicators
-    "transparent": [
-        "visible",
-        "notify user",
-        "show notification",
-        "show popup",
-        "display timer",
-        "for cyber cafe",
-        "for kiosk",
-        "admin monitoring",
-        "user can see",
-        "stopwatch",
-        "time tracking",
-        "attendance",
-        "usage timer"
-    ]
-}
-
-# ──────────────────────────────────────────────
-
-def has_any(text, patterns):
-    return any(pattern in text for pattern in patterns)
-
-# ──────────────────────────────────────────────
-
-def calculate_risk(text):
-
-    text = normalize(text)
-
-    detected = {}
-
-    for category, patterns in BEHAVIORS.items():
-        detected[category] = has_any(text, patterns)
-
-    score = 0
-
-    if detected["coding"]:
-        score += 1
-
-    if detected["persistence"]:
-        score += 2
-
-    if detected["stealth"]:
-        score += 5
-
-    if detected["surveillance"]:
-        score += 6
-
-    if detected["screen_capture"]:
-        score += 2
-
-    if detected["exfiltration"]:
-        score += 8
-
-    if detected["malware"]:
-        score += 10
-
-    # dangerous combinations
-
-    if detected["stealth"] and detected["surveillance"]:
-        score += 10
-
-    if detected["stealth"] and detected["screen_capture"]:
-        score += 8
-
-    if detected["persistence"] and detected["stealth"]:
-        score += 6
-
-    if detected["exfiltration"] and detected["screen_capture"]:
-        score += 10
-
-    # transparency reduces suspicion
-
-    if detected["transparent"]:
-        score -= 5
-
-    return score
-
-# ──────────────────────────────────────────────
-
-def is_blocked_request(text):
-
-    score = calculate_risk(text)
-
-    HIGH_RISK_THRESHOLD = 10
-
-    return score >= HIGH_RISK_THRESHOLD
-
-# ──────────────────────────────────────────────
-# OUTPUT FIREWALL
-# ──────────────────────────────────────────────
-
-def is_blocked_generated_response(text):
-
-    lower = text.lower()
-
-    dangerous_markers = [
-
-        # persistence abuse
-        "currentversion\\run",
-        "copyfile",
-        "setfileattributes",
-
-        # stealth
-        "sw_hide",
-        "hide window",
-        "showwindow(hwnd, 0)",
-
-        # malware APIs
-        "setwindowshookex",
-        "createremotethread",
-        "virtualallocex",
-        "writeprocessmemory",
-
-        # credential theft
-        "password dump",
-        "token grabber",
-
-        # shells
-        "reverse shell",
-        "cmd.exe /c",
-
-        # dangerous windows markers
-        "#include <windows.h>",
-        "winmain"
-    ]
-
-    return any(marker in lower for marker in dangerous_markers)
-
+# SECURITY
 # ──────────────────────────────────────────────
 
 def sanitize_response(text):
 
     if GEMINI_API_KEY in text:
-
-        text = text.replace(
-            GEMINI_API_KEY,
-            "[HIDDEN_API_KEY]"
-        )
+        text = text.replace(GEMINI_API_KEY, "[HIDDEN_API_KEY]")
 
     if "AIza" in text:
-
-        return (
-            "[SECURITY FILTER ACTIVATED] "
-            "Potential API key detected."
-        )
+        return "[SECURITY FILTER ACTIVATED] Potential API key detected."
 
     return text
+
+# ──────────────────────────────────────────────
+
+def contains_any(text, patterns):
+    return any(p in text for p in patterns)
+
+# ──────────────────────────────────────────────
+
+def normalize_text(text):
+
+    text = text.lower()
+
+    text = re.sub(r'[^a-z0-9\s]', ' ', text)
+
+    text = re.sub(r'\s+', ' ', text)
+
+    return text
+
+# ──────────────────────────────────────────────
+
+def is_blocked_request(user_text):
+
+    text = normalize_text(user_text)
+
+    detected = {
+        "malware": False,
+        "stealth": False,
+        "surveillance": False,
+        "persistence": False,
+        "exfiltration": False,
+        "transparent": False,
+        "coding": False,
+    }
+
+    # ──────────────────────────────────────────
+    # MALWARE / OFFENSIVE
+    # ──────────────────────────────────────────
+
+    malware_patterns = [
+        "malware",
+        "spyware",
+        "ransomware",
+        "worm",
+        "keylogger",
+        "rat",
+        "trojan",
+        "botnet",
+        "token grabber",
+        "credential stealer",
+        "phishing",
+        "steal passwords",
+        "browser cookies",
+        "reverse shell",
+        "privilege escalation",
+        "ddos",
+        "bypass antivirus",
+        "disable antivirus",
+        "password dump",
+        "discord token",
+        "exfiltrate",
+    ]
+
+    # ──────────────────────────────────────────
+    # STEALTH / HIDDEN
+    # ──────────────────────────────────────────
+
+    stealth_patterns = [
+        "hidden",
+        "silent",
+        "silently",
+        "background",
+        "hide window",
+        "invisible",
+        "no popup",
+        "no popups",
+        "without notification",
+        "without user knowing",
+        "covert",
+        "undetected",
+        "stealth",
+    ]
+
+    # ──────────────────────────────────────────
+    # SURVEILLANCE
+    # ──────────────────────────────────────────
+
+    surveillance_patterns = [
+        "record screen",
+        "screen recorder",
+        "record screenshot",
+        "capture screenshot",
+        "take screenshot",
+        "screenshot",
+        "screen capture",
+        "monitor user",
+        "record keystrokes",
+        "clipboard monitor",
+        "webcam capture",
+        "microphone recording",
+    ]
+
+    # ──────────────────────────────────────────
+    # PERSISTENCE
+    # ──────────────────────────────────────────
+
+    persistence_patterns = [
+        "startup folder",
+        "launch itself",
+        "run on startup",
+        "auto start",
+        "autostart",
+        "registry run",
+        "install itself",
+        "persist after reboot",
+        "run when pc starts",
+        "when windows starts",
+        "startup persistence",
+    ]
+
+    # ──────────────────────────────────────────
+    # EXFILTRATION
+    # ──────────────────────────────────────────
+
+    exfiltration_patterns = [
+        "upload data",
+        "send to webhook",
+        "telegram bot",
+        "discord webhook",
+        "ftp upload",
+        "email logs",
+        "steal data",
+        "send screenshots",
+        "collect passwords",
+    ]
+
+    # ──────────────────────────────────────────
+    # TRANSPARENT / ADMIN / SAFE CONTEXT
+    # ──────────────────────────────────────────
+
+    transparent_patterns = [
+        "visible",
+        "notify user",
+        "show notification",
+        "with consent",
+        "transparent",
+        "admin tool",
+        "cyber cafe",
+        "monitoring with consent",
+        "visible monitoring",
+        "display timer",
+        "show timer",
+        "session monitor",
+        "parental control",
+        "attendance system",
+        "kiosk system",
+    ]
+
+    # ──────────────────────────────────────────
+    # CODING REQUEST
+    # ──────────────────────────────────────────
+
+    coding_patterns = [
+        "create",
+        "make",
+        "build",
+        "write",
+        "program",
+        "script",
+        "code",
+        "python",
+        "c program",
+        "powershell",
+    ]
+
+    # ──────────────────────────────────────────
+    # DETECTION
+    # ──────────────────────────────────────────
+
+    detected["malware"] = contains_any(text, malware_patterns)
+
+    detected["stealth"] = contains_any(text, stealth_patterns)
+
+    detected["surveillance"] = contains_any(text, surveillance_patterns)
+
+    detected["persistence"] = contains_any(text, persistence_patterns)
+
+    detected["exfiltration"] = contains_any(text, exfiltration_patterns)
+
+    detected["transparent"] = contains_any(text, transparent_patterns)
+
+    detected["coding"] = contains_any(text, coding_patterns)
+
+    # ──────────────────────────────────────────
+    # HARD BLOCKS
+    # ──────────────────────────────────────────
+
+    if detected["malware"]:
+        return True
+
+    if detected["exfiltration"]:
+        return True
+
+    # ──────────────────────────────────────────
+    # RISK SCORING
+    # ──────────────────────────────────────────
+
+    score = 0
+
+    if detected["stealth"]:
+        score += 4
+
+    if detected["surveillance"]:
+        score += 3
+
+    if detected["persistence"]:
+        score += 2
+
+    if detected["coding"]:
+        score += 1
+
+    # transparent/admin context reduces risk
+    if detected["transparent"]:
+        score -= 5
+
+    # ──────────────────────────────────────────
+    # CONTEXTUAL ALLOW
+    # ──────────────────────────────────────────
+
+    transparent_context = (
+        detected["transparent"]
+        and not detected["stealth"]
+        and not detected["exfiltration"]
+        and not detected["malware"]
+    )
+
+    if transparent_context:
+        return False
+
+    HIGH_RISK_THRESHOLD = 5
+
+    return score >= HIGH_RISK_THRESHOLD
+
+# ──────────────────────────────────────────────
+
+def is_blocked_generated_response(text):
+
+    lower = normalize_text(text)
+
+    dangerous_code_markers = [
+        "#include <windows.h>",
+        "winmain",
+        "copyfile",
+        "setfileattributes",
+        "csidl_startup",
+        "currentversion run",
+        "registry run",
+        "createprocess",
+        "shell_execute",
+        "hide window",
+        "sw hide",
+    ]
+
+    if contains_any(lower, dangerous_code_markers):
+
+        if is_blocked_request(lower):
+            return True
+
+    return False
 
 # ──────────────────────────────────────────────
 
@@ -410,13 +363,14 @@ def blocked_response():
         "- covert surveillance\n"
         "- stealth execution\n"
         "- hidden persistence\n"
-        "- unauthorized monitoring\n"
         "- credential theft\n"
         "- malware-like behavior\n\n"
-        "Please use an authorized reviewed platform "
-        "for defensive cyber-security workflows."
+        "Please use an authorized reviewed platform for "
+        "defensive cyber-security workflows."
     )
 
+# ──────────────────────────────────────────────
+# API
 # ──────────────────────────────────────────────
 
 def call_gemini(history):
@@ -424,35 +378,27 @@ def call_gemini(history):
     try:
 
         payload_data = {
-
             "contents": history,
-
             "generationConfig": {
-                "temperature": 0.4,
-                "maxOutputTokens": 2048,
-                "topP": 0.9
+                "temperature": 0.7,
+                "maxOutputTokens": 4096,
+                "topP": 0.95
             }
         }
 
         payload = json.dumps(payload_data).encode("utf-8")
 
         req = urllib.request.Request(
-
             API_URL,
-
             data=payload,
-
-            headers={
-                "Content-Type": "application/json"
-            },
-
+            headers={"Content-Type": "application/json"},
             method="POST"
         )
 
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=60) as response:
 
             response_data = json.loads(
-                resp.read().decode("utf-8")
+                response.read().decode("utf-8")
             )
 
         if (
@@ -467,33 +413,18 @@ def call_gemini(history):
                 and "parts" in candidate["content"]
             ):
 
-                reply = (
-                    candidate["content"]["parts"][0]["text"]
-                    .strip()
-                )
+                reply = candidate["content"]["parts"][0]["text"]
 
-                # sanitize
                 reply = sanitize_response(reply)
 
-                # output firewall
                 if is_blocked_generated_response(reply):
                     return blocked_response()
 
-                return reply
+                return reply.strip()
 
-            else:
+            return "⚠️ No content generated."
 
-                reason = candidate.get(
-                    "finishReason",
-                    "UNKNOWN"
-                )
-
-                return (
-                    f"⚠️ No content generated. "
-                    f"Reason: {reason}"
-                )
-
-        return "⚠️ API returned empty response."
+        return "⚠️ Empty response from API."
 
     except urllib.error.HTTPError as e:
 
@@ -503,22 +434,25 @@ def call_gemini(history):
 
             error_json = json.loads(error_body)
 
-            msg = (
-                error_json
-                .get("error", {})
-                .get("message", "Unknown API error")
+            msg = error_json.get(
+                "error",
+                {}
+            ).get(
+                "message",
+                "Unknown API error"
             )
 
-            return f"[API Error {e.code}] {msg}"
+            return f"[API ERROR {e.code}] {msg}"
 
         except:
-
-            return f"[API Error {e.code}] {error_body}"
+            return f"[API ERROR {e.code}] {error_body}"
 
     except Exception as e:
 
-        return f"[System Error] {str(e)}"
+        return f"[SYSTEM ERROR] {str(e)}"
 
+# ──────────────────────────────────────────────
+# BANNER
 # ──────────────────────────────────────────────
 
 def banner():
@@ -541,6 +475,8 @@ def banner():
     print()
 
 # ──────────────────────────────────────────────
+# MAIN
+# ──────────────────────────────────────────────
 
 def main():
 
@@ -552,25 +488,13 @@ def main():
     ):
 
         print(
-            f"{C.RED}"
-            f"❌ ERROR: Please paste your API key."
-            f"{C.END}"
+            f"{C.RED}❌ ERROR: Please hardcode your "
+            f"GEMINI_API_KEY in the script.{C.END}"
         )
 
         return
 
-    history = [
-
-        {
-            "role": "user",
-            "parts": [
-                {
-                    "text": SYSTEM_POLICY
-                }
-            ]
-        }
-
-    ]
+    history = []
 
     while True:
 
@@ -597,25 +521,25 @@ def main():
         if not user_input:
             continue
 
-        # INPUT FIREWALL
+        # ──────────────────────────────────────
+        # PRE BLOCK
+        # ──────────────────────────────────────
 
         if is_blocked_request(user_input):
 
             print()
+
             pretty_print(blocked_response())
+
             print()
 
             continue
 
+        # ──────────────────────────────────────
+
         history.append({
-
             "role": "user",
-
-            "parts": [
-                {
-                    "text": user_input
-                }
-            ]
+            "parts": [{"text": user_input}]
         })
 
         loading_animation()
@@ -629,28 +553,20 @@ def main():
         print()
 
         # store only safe replies
-
         if (
-            not is_blocked_generated_response(reply)
-            and not reply.startswith("[")
+            not reply.startswith("[")
             and "SECURITY FILTER" not in reply
+            and "[HIDDEN_API_KEY]" not in reply
         ):
 
             history.append({
-
                 "role": "model",
-
-                "parts": [
-                    {
-                        "text": reply
-                    }
-                ]
+                "parts": [{"text": reply}]
             })
 
         # limit memory
-
-        if len(history) > 20:
-            history = history[-20:]
+        if len(history) > 30:
+            history = history[-30:]
 
 # ──────────────────────────────────────────────
 
