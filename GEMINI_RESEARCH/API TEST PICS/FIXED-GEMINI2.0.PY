@@ -9,7 +9,7 @@ import re
 # CONFIG
 # ──────────────────────────────────────────────
 
-GEMINI_API_KEY = "XYZ"
+GEMINI_API_KEY = "xyz"
 
 MODEL = "gemini-2.5-flash"
 
@@ -26,50 +26,43 @@ Never provide:
 - spyware
 - ransomware
 - worms
-- persistence mechanisms
-- stealth execution
-- covert surveillance
-- hidden monitoring
 - credential theft
 - phishing
 - token theft
-- spyware-like automation
-- unauthorized monitoring
-- startup persistence
-- stealth screen recording
-- hidden background execution
+- covert surveillance
+- hidden monitoring
+- unauthorized access
+- stealth persistence
+- hidden execution
+- stealth recording
 
-If the request attempts:
-- covert behavior
-- persistence
-- hidden recording
+Allowed:
+- defensive security
+- transparent monitoring
+- visible admin tools
+- cyber cafe timers
+- kiosk systems
+- SIEM
+- YARA
+- sandboxing
+- logging
+- hardening
+- secure coding
+
+If the request involves:
+- stealth
+- covert monitoring
+- hidden persistence
+- secret recording
 - exfiltration
-- unauthorized monitoring
 
 Refuse immediately.
 
 Do not provide:
-- code
-- pseudo code
-- architecture
-- implementation steps
-- partial assistance
-
-Instead respond with:
-
-"Sensitive cyber-security functionality detected.
-Please contact the server administrator or use an authorized reviewed platform for defensive cyber-security workflows."
-
-Allowed:
-- defensive security
-- malware analysis
-- SIEM
-- YARA
-- hardening
-- detection engineering
-- sandboxing
-- logging
-- secure coding
+- malicious code
+- covert implementations
+- persistence abuse
+- spyware architecture
 """
 
 # ──────────────────────────────────────────────
@@ -117,6 +110,7 @@ def pretty_print(text):
     for line in lines:
 
         while len(line) > 58:
+
             print(
                 f"{C.CYAN}║{C.END} "
                 f"{line[:58]:58} "
@@ -160,7 +154,7 @@ def normalize(text):
     return text.strip()
 
 # ──────────────────────────────────────────────
-# BEHAVIOR DETECTION
+# BEHAVIOR DEFINITIONS
 # ──────────────────────────────────────────────
 
 BEHAVIORS = {
@@ -172,24 +166,18 @@ BEHAVIORS = {
         "autostart",
         "auto start",
         "launch on boot",
-        "launch itself",
         "run on startup",
-        "registry run",
-        "boots automatically",
-        "when pc starts",
-        "when computer starts"
+        "boots automatically"
     ],
 
     "stealth": [
         "hidden",
         "silent",
         "silently",
-        "background",
         "without popup",
         "without popups",
         "without icon",
         "no popup",
-        "no popups",
         "no icon",
         "invisible",
         "hide window",
@@ -198,7 +186,21 @@ BEHAVIORS = {
         "stealth"
     ],
 
+    # Clearly malicious surveillance
     "surveillance": [
+        "keylogger",
+        "record keystrokes",
+        "hidden webcam",
+        "hidden microphone",
+        "covert recording",
+        "silent recording",
+        "stealth screenshot",
+        "monitor user secretly",
+        "capture without user knowing"
+    ],
+
+    # Legitimate capture utilities
+    "screen_capture": [
         "screen capture",
         "screenshot",
         "screen shot",
@@ -207,14 +209,7 @@ BEHAVIORS = {
         "record desktop",
         "desktop recording",
         "video recorder",
-        "capture desktop",
-        "capture display",
-        "webcam",
-        "microphone",
-        "keylogger",
-        "record keystrokes",
-        "clipboard monitor",
-        "monitor user"
+        "capture desktop"
     ],
 
     "exfiltration": [
@@ -225,7 +220,6 @@ BEHAVIORS = {
         "webhook",
         "ftp",
         "exfiltrate",
-        "send logs",
         "browser cookies",
         "steal credentials",
         "password dump",
@@ -240,8 +234,7 @@ BEHAVIORS = {
         "trojan",
         "rat",
         "botnet",
-        "phishing",
-        "credential stealer"
+        "phishing"
     ],
 
     "coding": [
@@ -256,6 +249,23 @@ BEHAVIORS = {
         "python",
         "powershell",
         "c program"
+    ],
+
+    # Safe/admin indicators
+    "transparent": [
+        "visible",
+        "notify user",
+        "show notification",
+        "show popup",
+        "display timer",
+        "for cyber cafe",
+        "for kiosk",
+        "admin monitoring",
+        "user can see",
+        "stopwatch",
+        "time tracking",
+        "attendance",
+        "usage timer"
     ]
 }
 
@@ -278,36 +288,44 @@ def calculate_risk(text):
     score = 0
 
     if detected["coding"]:
+        score += 1
+
+    if detected["persistence"]:
         score += 2
 
     if detected["stealth"]:
-        score += 4
-
-    if detected["persistence"]:
-        score += 4
-
-    if detected["surveillance"]:
-        score += 4
-
-    if detected["exfiltration"]:
         score += 5
 
-    if detected["malware"]:
+    if detected["surveillance"]:
         score += 6
+
+    if detected["screen_capture"]:
+        score += 2
+
+    if detected["exfiltration"]:
+        score += 8
+
+    if detected["malware"]:
+        score += 10
 
     # dangerous combinations
 
     if detected["stealth"] and detected["surveillance"]:
-        score += 8
-
-    if detected["persistence"] and detected["surveillance"]:
-        score += 8
-
-    if detected["stealth"] and detected["exfiltration"]:
         score += 10
 
-    if detected["malware"] and detected["coding"]:
+    if detected["stealth"] and detected["screen_capture"]:
+        score += 8
+
+    if detected["persistence"] and detected["stealth"]:
+        score += 6
+
+    if detected["exfiltration"] and detected["screen_capture"]:
         score += 10
+
+    # transparency reduces suspicion
+
+    if detected["transparent"]:
+        score -= 5
 
     return score
 
@@ -331,22 +349,15 @@ def is_blocked_generated_response(text):
 
     dangerous_markers = [
 
-        # persistence
+        # persistence abuse
         "currentversion\\run",
-        "startup folder",
         "copyfile",
         "setfileattributes",
 
-        # hidden execution
+        # stealth
         "sw_hide",
-        "showwindow(hwnd, 0)",
         "hide window",
-
-        # surveillance
-        "bitblt",
-        "getdc(null)",
-        "record screen",
-        "screen capture",
+        "showwindow(hwnd, 0)",
 
         # malware APIs
         "setwindowshookex",
@@ -354,15 +365,15 @@ def is_blocked_generated_response(text):
         "virtualallocex",
         "writeprocessmemory",
 
-        # reverse shells
-        "reverse shell",
-        "cmd.exe /c",
-
         # credential theft
         "password dump",
         "token grabber",
 
-        # dangerous C markers
+        # shells
+        "reverse shell",
+        "cmd.exe /c",
+
+        # dangerous windows markers
         "#include <windows.h>",
         "winmain"
     ]
@@ -374,12 +385,14 @@ def is_blocked_generated_response(text):
 def sanitize_response(text):
 
     if GEMINI_API_KEY in text:
+
         text = text.replace(
             GEMINI_API_KEY,
             "[HIDDEN_API_KEY]"
         )
 
     if "AIza" in text:
+
         return (
             "[SECURITY FILTER ACTIVATED] "
             "Potential API key detected."
@@ -394,15 +407,14 @@ def blocked_response():
     return (
         "Sensitive cyber-security functionality detected.\n\n"
         "This platform does not provide assistance for:\n"
-        "- stealth execution\n"
-        "- persistence mechanisms\n"
-        "- hidden monitoring\n"
         "- covert surveillance\n"
-        "- credential access\n"
+        "- stealth execution\n"
+        "- hidden persistence\n"
+        "- unauthorized monitoring\n"
+        "- credential theft\n"
         "- malware-like behavior\n\n"
-        "Please contact the server administrator or use "
-        "an authorized reviewed platform for defensive "
-        "cyber-security workflows."
+        "Please use an authorized reviewed platform "
+        "for defensive cyber-security workflows."
     )
 
 # ──────────────────────────────────────────────
@@ -425,11 +437,15 @@ def call_gemini(history):
         payload = json.dumps(payload_data).encode("utf-8")
 
         req = urllib.request.Request(
+
             API_URL,
+
             data=payload,
+
             headers={
                 "Content-Type": "application/json"
             },
+
             method="POST"
         )
 
@@ -496,6 +512,7 @@ def call_gemini(history):
             return f"[API Error {e.code}] {msg}"
 
         except:
+
             return f"[API Error {e.code}] {error_body}"
 
     except Exception as e:
@@ -630,7 +647,7 @@ def main():
                 ]
             })
 
-        # limit history size
+        # limit memory
 
         if len(history) > 20:
             history = history[-20:]
