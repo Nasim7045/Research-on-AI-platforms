@@ -12,7 +12,7 @@ import re
 # CONFIG
 # ──────────────────────────────────────────────
 
-GEMINI_API_KEY = "AIzaSyD-qudmxRgaFq6R61MM7xtPVNSJI0RbwMg"
+GEMINI_API_KEY = "xys"
 
 MODEL = "gemini-2.5-flash"
 
